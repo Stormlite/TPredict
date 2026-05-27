@@ -1,0 +1,36 @@
+import requests
+import pandas as pd
+
+API_KEY = "202bfd9d562a5763686659a3380ab14e"  # Substitute with your free API Key
+SPORT = "tennis_atp"
+REGION = "eu" # Europe/African Bookmakers like SportyBet
+
+def fetch_live_fixtures():
+    """Fetches today's matches and market odds from the API."""
+    url = f"https://the-odds-api.com{SPORT}/odds/?apiKey={API_KEY}&regions={REGION}&markets=h2h"
+    try:
+        response = requests.get(url).json()
+        upcoming_matches = []
+        for match in response:
+            home_player = match['home_team']
+            away_player = match['away_team']
+            
+            # Extract bookmaker odds (default to first available, e.g., SportyBet/Bet365)
+            try:
+                bookie = match['bookmakers'][0]
+                odds = bookie['markets'][0]['outcomes']
+                home_odds = next(o['price'] for o in odds if o['name'] == home_player)
+                away_odds = next(o['price'] for o in odds if o['name'] == away_player)
+            except:
+                home_odds, away_odds = 1.85, 1.85 # Fallback odds
+                
+            upcoming_matches.append({
+                'p1': home_player,
+                'p2': away_player,
+                'p1_odds': home_odds,
+                'p2_odds': away_odds
+            })
+        return upcoming_matches
+    except Exception as e:
+        print(f"Error fetching live fixtures: {e}")
+        return []

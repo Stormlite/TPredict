@@ -1,0 +1,42 @@
+import argparse
+import pandas as pd
+import joblib
+
+def main():
+    parser = argparse.ArgumentParser(description="Predict tennis match outcomes.")
+    parser.add_argument("--p1-rank", type=int, required=True, help="Player 1 ATP ranking")
+    parser.add_argument("--p2-rank", type=int, required=True, help="Player 2 ATP ranking")
+    parser.add_argument("--surface", type=str, required=True, choices=['Clay', 'Hard', 'Grass'])
+    parser.add_argument("--model-path", type=str, default="models/rf_model.pkl")
+    args = parser.parse_args()
+
+    # Load the trained model
+    model = joblib.load(args.model_path)
+    
+    # Reconstruct the exact inputs without surf_Carpet to match training data columns
+    input_data = {
+        'rank_diff': [args.p1_rank - args.p2_rank],
+        'surf_Clay': [1 if args.surface == 'Clay' else 0],
+        'surf_Grass': [1 if args.surface == 'Grass' else 0],
+        'surf_Hard': [1 if args.surface == 'Hard' else 0]
+    }
+    
+    df_input = pd.DataFrame(input_data)
+    
+    # Ensure column order matches training features exactly
+    df_input = df_input[['rank_diff', 'surf_Clay', 'surf_Grass', 'surf_Hard']]
+    
+    # Run the model predictions
+    prediction = model.predict(df_input)[0]
+    probabilities = model.predict_proba(df_input)[0]
+    
+    print(f"\n--- Match Prediction Result ---")
+    if prediction == 1:
+        print(f"Predicted Winner: Player 1")
+        print(f"Confidence: {probabilities[1] * 100:.2f}%")
+    else:
+        print(f"Predicted Winner: Player 2")
+        print(f"Confidence: {probabilities[0] * 100:.2f}%")
+
+if __name__ == "__main__":
+    main()
