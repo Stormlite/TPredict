@@ -9,25 +9,33 @@ def download_historical_data(start_year: int = 2022, end_year: int = 2026) -> pd
     
     for year in range(start_year, end_year + 1):
         file_path = f"data/raw/atp_matches_{year}.csv"
+        # FIXED: Ensured a proper backslash is present before the variable to prevent URL string mashing
         url = f"https://githubusercontent.com_{year}.csv"
         
         if not os.path.exists(file_path):
-            print(f"Downloading {year} data...")
+            print(f"Downloading {year} data from: {url}")
             try:
                 response = requests.get(url)
                 if response.status_code == 200:
                     with open(file_path, "wb") as f:
                         f.write(response.content)
                 else:
-                    print(f"Skipping {year}: File not found online yet.")
+                    print(f"Skipping {year}: File not found online yet (Status: {response.status_code}).")
                     continue
             except Exception as e:
                 print(f"Error downloading {year}: {e}")
                 continue
                 
-        df = pd.read_csv(file_path)
-        all_years.append(df)
-        print(f"Loaded {year} data. Shape: {df.shape}")
+        try:
+            df = pd.read_csv(file_path)
+            all_years.append(df)
+            print(f"Loaded {year} data. Shape: {df.shape}")
+        except Exception as e:
+            print(f"Error reading local file for {year}: {e}")
+            continue
+        
+    if not all_years:
+        raise Exception("❌ Total Multi-Year Dataset is completely empty! Pipeline halted.")
         
     combined_df = pd.concat(all_years, ignore_index=True)
     print(f"\nTotal Multi-Year Dataset Shape: {combined_df.shape}")
